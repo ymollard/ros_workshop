@@ -1,0 +1,10 @@
+.empty/*
+.idea/*
+.ipynb_checkpoints/*
+.vscode/*
+checkpoints/*
+data/*
+*/__pycache__
+*/*.pyc
+dist/*
+ros_workshop.egg-info/*
