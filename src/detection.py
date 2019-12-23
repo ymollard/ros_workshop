@@ -9,6 +9,8 @@ from skimage.filters import threshold_otsu
 from skimage.measure import (approximate_polygon, find_contours)
 from skimage.morphology import (closing, convex_hull_object, square)
 from skimage.segmentation import clear_border
+from scipy.spatial import ConvexHull
+
 
 
 def normalize(imag, mean, std, debug=False):
@@ -58,6 +60,7 @@ def binarize(imag, debug=False):
 
     return cleared
 
+
 def inverse(imag, debug=False):
     """
     This function returns an inversed image of a normalized image.
@@ -73,6 +76,7 @@ def inverse(imag, debug=False):
         plt.show()
 
     return imag
+
 
 def approximate_square(contour):
     """
@@ -97,6 +101,7 @@ def approximate_square(contour):
             tol += 1
     raise Exception("Failed to approximate square")
 
+
 def reorder_contour(contour):
     """
     The contour found by `approximate_square` may not be always sorted in the same way. For instance
@@ -108,6 +113,7 @@ def reorder_contour(contour):
     lowest_rightest_point = rightest_points[rightest_points[:, 1].argsort()][-1]
     lr_point_idx = np.where(np.all(contour == lowest_rightest_point, axis=1))[0][0]
     return np.roll(contour, -lr_point_idx, axis=0)
+
 
 def get_box_contours(imag, debug=False):
     """
@@ -121,9 +127,13 @@ def get_box_contours(imag, debug=False):
     # We preprocess the images
     imag = binarize(rescale(imag), debug=debug)
 
+    # We extract the convex hulls, and keep only the largest ones.
+    ctrs = find_contours(imag, 0)
+    hulls = [ConvexHull(c) for c in ctrs]
+    ctrs = [h.points[np.flip(h.vertices)] for h in hulls if h.area > 500]
 
-    # We find the contours
-    ctrs = [reorder_contour(approximate_square(c)) for c in find_contours(imag, 0)]
+    # We keep the convex hull of the cont
+    ctrs = [reorder_contour(approximate_square(c)) for c in ctrs]
     if debug:
         plt.imshow(imag)
         for coords in ctrs:
