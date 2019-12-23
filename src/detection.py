@@ -1,61 +1,54 @@
 """
-SThis module contains utilities functions used in the preprocessing phase of the detection.
+This module contains utilities functions used in the preprocessing phase of the detection.
 """
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import math
-from skimage import data
-from skimage.filters import threshold_otsu
-from skimage.segmentation import clear_border
-from skimage.measure import label, regionprops
-from skimage.morphology import closing, square, convex_hull_object, disk, white_tophat
-from skimage import exposure
-from skimage.color import label2rgb
-from skimage.measure import find_contours, approximate_polygon, \
-    subdivide_polygon
 import imageio
-import copy
+import matplotlib.pyplot as plt
 import numpy as np
 import skimage.transform as tf
+from skimage.filters import threshold_otsu
+from skimage.measure import (approximate_polygon, find_contours)
+from skimage.morphology import (closing, convex_hull_object, square)
+from skimage.segmentation import clear_border
 
-def normalize(image, mean, std, debug=False):
+
+def normalize(imag, mean, std, debug=False):
     """
     This function returns a normalized copy of the image.
     """
 
-    image = image.copy()
+    imag = imag.copy()
 
     # We rescale the pixels to have zero mean and 1 standard deviation
-    image = image - mean
-    image = image / std
+    imag = imag - mean
+    imag = imag / std
 
     if debug:
-        plt.imshow(image)
+        plt.imshow(imag)
         plt.title("normalized image")
         plt.show()
 
-    return image
+    return imag
 
 
-def rescale(image, debug=False):
+def rescale(imag):
     """
     This function returns a rescaled copy of the image.
     """
 
-    return normalize(image, image.min(), image.max())
+    return normalize(imag, imag.min(), imag.max())
 
 
-def binarize(image, debug=False):
+def binarize(imag, debug=False):
     """
     This function returns a binarized image of the image.
     """
 
-    image = image.copy()
+    imag = imag.copy()
 
     # We compute an optimal threshold and form a binary image
-    thresh = threshold_otsu(image)
-    bw = closing(image > thresh, square(3))
-    cleared = clear_border(bw)
+    thresh = threshold_otsu(imag)
+    black_white = closing(imag > thresh, square(3))
+    cleared = clear_border(black_white)
     cleared = convex_hull_object(cleared)
 
     if debug:
@@ -65,21 +58,21 @@ def binarize(image, debug=False):
 
     return cleared
 
-def inverse(image, debug=False):
+def inverse(imag, debug=False):
     """
     This function returns an inversed image of a normalized image.
     """
 
-    image = image.copy()
+    imag = imag.copy()
 
-    image = 1. - image
+    imag = 1. - imag
 
     if debug:
-        plt.imshow(image)
+        plt.imshow(imag)
         plt.title("Thresholded image")
         plt.show()
 
-    return image
+    return imag
 
 def approximate_square(contour):
     """
@@ -94,54 +87,68 @@ def approximate_square(contour):
         coords = np.flip(coords[0:-1], axis=1)
         if coords.shape[0] == 4:
             return coords
-        elif coords.shape[0] < 4:
+        if coords.shape[0] < 4:
             print("Failed to approximate square with tolerance {}, found {} points. Retrying."\
                 .format(tol, coords.shape[0]))
-            tol -= 5
+            tol -= 1
         else:
             print("Failed to approximate square with tolerance {}, found {} points. Retrying."\
                 .format(tol, coords.shape[0]))
-            tol += 5
+            tol += 1
     raise Exception("Failed to approximate square")
 
-
-def get_box_contours(image, debug=False):
+def reorder_contour(contour):
     """
-    This function takes as input a single channel image, and returns a list of contours bounding 
+    The contour found by `approximate_square` may not be always sorted in the same way. For instance
+    we want the down-right point to always be one. This function allows to reorder the contour this
+    way.
+    """
+
+    rightest_points = contour[contour[:, 0].argsort()][-2:]
+    lowest_rightest_point = rightest_points[rightest_points[:, 1].argsort()][-1]
+    lr_point_idx = np.where(np.all(contour == lowest_rightest_point, axis=1))[0][0]
+    return np.roll(contour, -lr_point_idx, axis=0)
+
+def get_box_contours(imag, debug=False):
+    """
+    This function takes as input a single channel image, and returns a list of contours bounding
     the cubes.
     """
 
     # We make sure that we work on a local copy of the image
-    image = image.copy()
+    imag = imag.copy()
 
     # We preprocess the images
-    image = binarize(rescale(image, debug=debug), debug=debug)
+    imag = binarize(rescale(imag), debug=debug)
 
 
     # We find the contours
-    contours = [approximate_square(c) for c in find_contours(image, 0)]
+    ctrs = [reorder_contour(approximate_square(c)) for c in find_contours(imag, 0)]
     if debug:
-        plt.imshow(image)
-        for coords in contours:
+        plt.imshow(imag)
+        for coords in ctrs:
             plt.plot(coords[:, 0], coords[:, 1], 'og', linewidth=2)
-            plt.plot(coords.mean(axis=0)[0], coords.mean(axis=0)[1],  'or')
+            plt.plot(coords.mean(axis=0)[0], coords.mean(axis=0)[1], 'or')
+            ind = [1, 2, 3, 4]
+            for i, txt in enumerate(ind):
+                plt.annotate(txt, (coords[i, 0], coords[i, 1]))
         plt.title("Contours found")
         plt.show()
 
-    return contours
+    return ctrs
 
 
-def get_sprites(image, contours, debug=False):
+def get_sprites(imag, ctrs, debug=False):
     """
-    For each of the given contours, this function computes the transform and extracts the warped 
+    For each of the given contours, this function computes the transform and extracts the warped
     sprite.
     """
 
     # We make sure that we work on a local copy of the image
-    image = image.copy()
+    imag = imag.copy()
 
-    sprites = []
-    for contour in contours:
+    sprts = []
+    for contour in ctrs:
 
         # We retrieve the coordinates of the source and the destination points
         source_points = np.array([[28, 28], [0, 28], [0, 0], [28, 0]])
@@ -150,55 +157,56 @@ def get_sprites(image, contours, debug=False):
         # We compute the transform
         transform = tf.ProjectiveTransform()
         transform.estimate(source_points, destination_points)
-        warped = tf.warp(image, transform, output_shape=(28, 28))
+        warped = tf.warp(imag, transform, output_shape=(28, 28))
         if debug:
-            _, ax = plt.subplots(nrows=2, figsize=(8, 3))
-            ax[0].imshow(image)
-            ax[0].plot(destination_points[:, 0], destination_points[:, 1], '.r')
-            ax[1].imshow(warped)
+            _, axis = plt.subplots(nrows=2, figsize=(8, 3))
+            axis[0].imshow(imag)
+            axis[0].plot(destination_points[:, 0], destination_points[:, 1], '.r')
+            axis[1].imshow(warped)
             plt.show()
 
-        sprites.append(warped)
+        sprts.append(warped)
 
-    return sprites
+    return sprts
 
 
-def preprocess_sprites(sprites, debug=False):
+def preprocess_sprites(sprts, debug=False):
     """
     This function preprocesses sprites to make them closer to the mnist images.
     """
 
     out_sprites = []
 
-    for img in sprites:
+    for imag in sprts:
 
         # We make a local copy
-        img = img.copy()
+        imag = imag.copy()
 
         # We rescale, inverse and normalize
-        img = inverse(rescale(img, debug=debug), debug=debug)
-        img = normalize(img, 0.5, 0.5, debug=debug)
+        imag = inverse(rescale(imag), debug=debug)
+        imag = normalize(imag, 0.5, 0.5, debug=debug)
 
         if debug:
-            plt.imshow(img)
+            plt.imshow(imag)
             plt.show()
 
-        out_sprites.append(img)
-    
+        out_sprites.append(imag)
+
     return out_sprites
 
 
-if __name__=="__main__":
-    
+if __name__ == "__main__":
+
     import glob
 
-    test = glob.glob('data/cubes/**/*.jpg', recursive=True)
+    TEST = glob.glob('../data/cubes/duo/*.jpg', recursive=True)
+    print(f"Found images to test: {TEST}")
 
-    for path in test:
+    for path in TEST:
         print("Testing image {}".format(path))
-        image = imageio.imread(path)[:,:,0]
-        contours = get_box_contours(image, debug=False)
-        sprites = get_sprites(image, contours, debug=False)
+        image = imageio.imread(path)[:, :, 0]
+        contours = get_box_contours(image, debug=True)
+        sprites = get_sprites(image, contours, debug=True)
         sprites = preprocess_sprites(sprites, debug=False)
         for img in sprites:
             plt.imshow(img)

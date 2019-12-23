@@ -1,26 +1,25 @@
 """
 Training of neural network
 """
-import torch
-import numpy as np
-from tqdm import tqdm
-from torch import optim
-from torch import nn
 from datetime import datetime
+
+import torch
+from torch import nn, optim
+from tqdm import tqdm
+
 from src import misc
 from src.models import LeNet
 from src.vis import VisdomVisualizer
 
-
 VISU = VisdomVisualizer()
-BATCH_SIZE=128
+BATCH_SIZE = 128
 LABELS = [1, 2]
 
 
 def perform_train_epoch(model, trainloader, criterion, optimizer, log_freq=10, chck_freq=150):
     """
-    This function performs a training epoch on a trainloader. E.g. it performs gradient descent on 
-    mini-batches until all the samples of the dataset have been seen by the network.
+    This function performs a training epoch on a trainloader. E.g. it performs gradient descent
+    on mini-batches until all the samples of the dataset have been seen by the network.
     """
 
     model.train()
@@ -85,15 +84,15 @@ def trace_classes(model, testloader):
     """
 
     with torch.no_grad():
-        
-        inputs, labels = iter(testloader).next()
+
+        inputs, _ = iter(testloader).next()
         outputs = model(inputs)
-        _, prediction = torch.max(outputs.data, 1) 
-        max_index = testloader.dataset.targets.max().item()     
+        _, prediction = torch.max(outputs.data, 1)
+        max_index = testloader.dataset.targets.max().item()
 
         for i in range(max_index+1):
 
-            images = inputs[prediction==i]
+            images = inputs[prediction == i]
             label = LABELS[i]
             VISU.push_class_images(images, label)
 
@@ -114,7 +113,7 @@ def train(epochs, lr=0.001, momentum=0.9, weight_decay=1e-4):
         perform_train_epoch(model, trainloader, criterion, optimizer)
         evaluate_model(model, testloader, criterion)
         trace_classes(model, testloader)
-    
+
     torch.save(model.state_dict(), datetime.now().strftime(("checkpoints/final-%H:%M:%S.t7")))
 
     return model
