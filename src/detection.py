@@ -25,8 +25,6 @@ def normalize(imag, mean, std, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
-    # imag = imag - mean
-    # imag = imag / std
 
     if debug:
         plt.imshow(imag)
@@ -49,8 +47,6 @@ def rescale(imag):
     ##################
     # YOUR CODE HERE #
     ##################
-    # imag = imag - imag.min()
-    # imag = imag / imag.max()
 
     if debug:
         plt.imshow(imag)
@@ -71,17 +67,13 @@ def binarize(imag, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
-    # thresh = threshold_otsu(imag)
-    # black_white = closing(imag > thresh, square(3))
-    # cleared = clear_border(black_white)
-    # cleared = convex_hull_object(cleared)
 
     if debug:
-        plt.imshow(cleared)
+        plt.imshow(imag)
         plt.title("Thresholded image")
         plt.show()
 
-    return cleared
+    return imag
 
 
 def inverse(imag, debug=False):
@@ -96,7 +88,6 @@ def inverse(imag, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
-    # imag = 1. - imag
 
     if debug:
         plt.imshow(imag)
@@ -142,10 +133,6 @@ def reorder_contour(contour):
     ##################
     # YOUR CODE HERE #
     ##################
-    # rightest_points = contour[contour[:, 0].argsort()][-2:]
-    # lowest_rightest_point = rightest_points[rightest_points[:, 1].argsort()][-1]
-    # lr_point_idx = np.where(np.all(contour == lowest_rightest_point, axis=1))[0][0]
-    # contour = np.roll(contour, -lr_point_idx, axis=0)
 
     return contour
 
@@ -164,23 +151,18 @@ def get_box_contours(imag, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
-    # imag = binarize(rescale(imag), debug=debug)
 
     # We extract the contours, and keep only the largest ones.
 
     ##################
     # YOUR CODE HERE #
     ##################
-    # ctrs = find_contours(imag, 0)
-    # hulls = [ConvexHull(c) for c in ctrs]
-    # ctrs = [h.points[np.flip(h.vertices)] for h in hulls if h.area > 500]
 
     # We approximate the contours by squares and reorder the points
 
     ##################
     # YOUR CODE HERE #
     ##################
-    # ctrs = [reorder_contour(approximate_square(c)) for c in ctrs]
 
     if debug:
         plt.imshow(imag)
@@ -215,17 +197,12 @@ def get_sprites(imag, ctrs, debug=False):
         ##################
         # YOUR CODE HERE #
         ##################
-        # source_points = np.array([[28, 28], [0, 28], [0, 0], [28, 0]])
-        # destination_points = contour
-        # transform = tf.ProjectiveTransform()
-        # transform.estimate(source_points, destination_points)
 
         # We transform the image
 
         ##################
         # YOUR CODE HERE #
         ##################
-        # warped = tf.warp(imag, transform, output_shape=(28, 28))
 
         if debug:
             _, axis = plt.subplots(nrows=2, figsize=(8, 3))
@@ -256,8 +233,6 @@ def preprocess_sprites(sprts, debug=False):
         ##################
         # YOUR CODE HERE #
         ##################
-        # imag = inverse(rescale(imag), debug=debug)
-        # imag = normalize(imag, 0.5, 0.5, debug=debug)
 
         if debug:
             plt.imshow(imag)
