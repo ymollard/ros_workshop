@@ -9,9 +9,7 @@ from tqdm import tqdm
 
 from src import misc
 from src.models import LeNet
-from src.vis import VisdomVisualizer
 
-VISU = VisdomVisualizer()
 BATCH_SIZE = 128
 LABELS = [1, 2]
 
@@ -30,27 +28,58 @@ def perform_train_epoch(model, trainloader, criterion, optimizer, log_freq=10, c
 
     for idx, (inputs, labels) in progress_bar_iter:
 
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        _, prediction = torch.max(outputs.data, 1)
-        total_correct += (prediction == labels).sum().item()
-        total += prediction.shape[0]
-        loss = criterion(outputs, labels)
-        total_loss += loss.item()
-        loss.backward()
-        optimizer.step()
+        # We reset gradients to zero
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # optimizer.zero_grad()
+
+        # We perform the forward pass
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # outputs = model(inputs)
+
+        # We compute the loss
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # loss = criterion(outputs, labels)
+
+        # We perform the backward pass
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # loss.backward()
+
+        # We perform the optimization step
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # optimizer.step()
+
+        # We update total_loss, total_correct and total
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # _, prediction = torch.max(outputs.data, 1)
+        # total += prediction.shape[0]
+        # total_correct += (prediction == labels).sum().item()
+        # total_loss += loss.item()
+
 
         if idx % log_freq == 0:
-
             train_loss = total_loss / idx
-            VISU.push_train_loss(train_loss)
             train_accuracy = total_correct / total
-            VISU.push_train_accuracy(train_accuracy)
             progress_bar_iter.set_description("Epoch. Loss: {}, Accuracy: {}"\
                 .format(train_loss, train_accuracy))
-
         if idx % chck_freq == 0:
-
             torch.save(model.state_dict(), datetime.now().strftime(("checkpoints/%H:%M:%S.torch")))
 
 
@@ -74,27 +103,8 @@ def evaluate_model(model, testloader, criterion):
             loss = criterion(outputs, labels)
             total_loss += loss.item()
 
-    VISU.push_test_accuracy(total_correct/total)
-    VISU.push_test_loss(total_loss/idx)
-
-
-def trace_classes(model, testloader):
-    """
-    This function display some images of every classes in different windows in visdom.
-    """
-
-    with torch.no_grad():
-
-        inputs, _ = iter(testloader).next()
-        outputs = model(inputs)
-        _, prediction = torch.max(outputs.data, 1)
-        max_index = testloader.dataset.targets.max().item()
-
-        for i in range(max_index+1):
-
-            images = inputs[prediction == i]
-            label = LABELS[i]
-            VISU.push_class_images(images, label)
+    print(f"Test accuracy: {total_correct/total}")
+    print(f"Test loss: {total_loss/idx}")
 
 
 def train(epochs, lr=0.001, momentum=0.9, weight_decay=1e-4):
@@ -112,7 +122,6 @@ def train(epochs, lr=0.001, momentum=0.9, weight_decay=1e-4):
 
         perform_train_epoch(model, trainloader, criterion, optimizer)
         evaluate_model(model, testloader, criterion)
-        trace_classes(model, testloader)
 
     torch.save(model.state_dict(), datetime.now().strftime(("checkpoints/final-%H:%M:%S.t7")))
 

@@ -20,9 +20,13 @@ def normalize(imag, mean, std, debug=False):
 
     imag = imag.copy()
 
-    # We rescale the pixels to have zero mean and 1 standard deviation
-    imag = imag - mean
-    imag = imag / std
+    # We rescale the pixels to have 0 mean and 1 standard deviation
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # imag = imag - mean
+    # imag = imag / std
 
     if debug:
         plt.imshow(imag)
@@ -34,24 +38,43 @@ def normalize(imag, mean, std, debug=False):
 
 def rescale(imag):
     """
-    This function returns a rescaled copy of the image.
+    This function returns a rescaled version of the image.
+    This means that values all lies in [0, 1].
     """
 
-    return normalize(imag, imag.min(), imag.max())
+    imag = imag.copy()
 
+    # We rescale the pixels to have minimum value of 0 and max value of 1.
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # imag = imag - imag.min()
+    # imag = imag / imag.max()
+
+    if debug:
+        plt.imshow(imag)
+        plt.title("rescaled image")
+        plt.show()
+
+    return imag
 
 def binarize(imag, debug=False):
     """
-    This function returns a binarized image of the image.
+    This function returns a binarized version of the image.
     """
 
     imag = imag.copy()
 
     # We compute an optimal threshold and form a binary image
-    thresh = threshold_otsu(imag)
-    black_white = closing(imag > thresh, square(3))
-    cleared = clear_border(black_white)
-    cleared = convex_hull_object(cleared)
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # thresh = threshold_otsu(imag)
+    # black_white = closing(imag > thresh, square(3))
+    # cleared = clear_border(black_white)
+    # cleared = convex_hull_object(cleared)
 
     if debug:
         plt.imshow(cleared)
@@ -63,12 +86,17 @@ def binarize(imag, debug=False):
 
 def inverse(imag, debug=False):
     """
-    This function returns an inversed image of a normalized image.
+    This function returns an inversed image.
     """
 
     imag = imag.copy()
 
-    imag = 1. - imag
+    # We inverse the an image such that former 0 values are now 1.
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # imag = 1. - imag
 
     if debug:
         plt.imshow(imag)
@@ -99,20 +127,27 @@ def approximate_square(contour):
             print("Failed to approximate square with tolerance {}, found {} points. Retrying."\
                 .format(tol, coords.shape[0]))
             tol += 1
+
     raise Exception("Failed to approximate square")
 
 
 def reorder_contour(contour):
     """
-    The contour found by `approximate_square` may not be always sorted in the same way. For instance
-    we want the down-right point to always be one. This function allows to reorder the contour this
-    way.
+    This function allows to reorder the contour so that the down-right point is always first, and
+    points are ordered clockwise.
     """
 
-    rightest_points = contour[contour[:, 0].argsort()][-2:]
-    lowest_rightest_point = rightest_points[rightest_points[:, 1].argsort()][-1]
-    lr_point_idx = np.where(np.all(contour == lowest_rightest_point, axis=1))[0][0]
-    return np.roll(contour, -lr_point_idx, axis=0)
+    # We reorder the points
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # rightest_points = contour[contour[:, 0].argsort()][-2:]
+    # lowest_rightest_point = rightest_points[rightest_points[:, 1].argsort()][-1]
+    # lr_point_idx = np.where(np.all(contour == lowest_rightest_point, axis=1))[0][0]
+    # contour = np.roll(contour, -lr_point_idx, axis=0)
+
+    return contour
 
 
 def get_box_contours(imag, debug=False):
@@ -124,16 +159,29 @@ def get_box_contours(imag, debug=False):
     # We make sure that we work on a local copy of the image
     imag = imag.copy()
 
-    # We preprocess the images
-    imag = binarize(rescale(imag), debug=debug)
+    # We turn the image to a binary one
 
-    # We extract the convex hulls, and keep only the largest ones.
-    ctrs = find_contours(imag, 0)
-    hulls = [ConvexHull(c) for c in ctrs]
-    ctrs = [h.points[np.flip(h.vertices)] for h in hulls if h.area > 500]
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # imag = binarize(rescale(imag), debug=debug)
 
-    # We keep the convex hull of the cont
-    ctrs = [reorder_contour(approximate_square(c)) for c in ctrs]
+    # We extract the contours, and keep only the largest ones.
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # ctrs = find_contours(imag, 0)
+    # hulls = [ConvexHull(c) for c in ctrs]
+    # ctrs = [h.points[np.flip(h.vertices)] for h in hulls if h.area > 500]
+
+    # We approximate the contours by squares and reorder the points
+
+    ##################
+    # YOUR CODE HERE #
+    ##################
+    # ctrs = [reorder_contour(approximate_square(c)) for c in ctrs]
+
     if debug:
         plt.imshow(imag)
         for coords in ctrs:
@@ -150,24 +198,35 @@ def get_box_contours(imag, debug=False):
 
 def get_sprites(imag, ctrs, debug=False):
     """
-    For each of the given contours, this function computes the transform and extracts the warped
-    sprite.
+    This function computes a projective transform from the source (mnist image) to
+    the destination (contour) and extracts the warped sprite.
     """
 
     # We make sure that we work on a local copy of the image
     imag = imag.copy()
 
+    # We loop through the sprites 
     sprts = []
+
     for contour in ctrs:
 
-        # We retrieve the coordinates of the source and the destination points
-        source_points = np.array([[28, 28], [0, 28], [0, 0], [28, 0]])
-        destination_points = contour
+        # We compute the projective transform
 
-        # We compute the transform
-        transform = tf.ProjectiveTransform()
-        transform.estimate(source_points, destination_points)
-        warped = tf.warp(imag, transform, output_shape=(28, 28))
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # source_points = np.array([[28, 28], [0, 28], [0, 0], [28, 0]])
+        # destination_points = contour
+        # transform = tf.ProjectiveTransform()
+        # transform.estimate(source_points, destination_points)
+
+        # We transform the image
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # warped = tf.warp(imag, transform, output_shape=(28, 28))
+
         if debug:
             _, axis = plt.subplots(nrows=2, figsize=(8, 3))
             axis[0].imshow(imag)
@@ -193,8 +252,12 @@ def preprocess_sprites(sprts, debug=False):
         imag = imag.copy()
 
         # We rescale, inverse and normalize
-        imag = inverse(rescale(imag), debug=debug)
-        imag = normalize(imag, 0.5, 0.5, debug=debug)
+
+        ##################
+        # YOUR CODE HERE #
+        ##################
+        # imag = inverse(rescale(imag), debug=debug)
+        # imag = normalize(imag, 0.5, 0.5, debug=debug)
 
         if debug:
             plt.imshow(imag)
