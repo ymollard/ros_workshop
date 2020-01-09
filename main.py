@@ -43,7 +43,8 @@ if __name__ == "__main__":
     import glob
 
     labels = [1, 2]
-    checkpoint_path = "checkpoints/final-19:03:59.t7"
+
+    checkpoint_path = "checkpoints/final-23:45:12.t7"
 
     model = LeNet(classes=labels)
     model.load_state_dict(torch.load(checkpoint_path))

@@ -16,7 +16,7 @@ def load_mnist_data(kept_labels=[1, 2], batch_size=128):
     transform = transforms.Compose(
         [
             transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
+            transforms.Normalize((0.1,), (0.3,))
         ]
     )
     
@@ -42,30 +42,3 @@ def load_mnist_data(kept_labels=[1, 2], batch_size=128):
     test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=2)
     
     return train_loader, test_loader
-
-def preview_loader(loader):
-    """
-    Shows a few samples of the loader.
-    """
-
-    # We get a batch
-    iterator = iter(loader)
-    images, labels = iterator.next()
-
-    # We generate a plot
-    grid_size = int(np.floor(np.sqrt(images.shape[0])))
-    (_, ax) = plt.subplots(11, 11)
-    for i in range(11**2):
-        current_axis = ax[i//grid_size, i%grid_size]
-        current_axis.imshow(images[i, 0])
-        current_axis.set_title(labels[i].item())
-        current_axis.set_axis_off()
-    plt.show()
-
-
-if __name__ == "__main__":
-    print("Testing misc...")
-    print("Loading data...")
-    train, test = load_mnist_data()
-    print("Previewing...")
-    preview_loader(train)

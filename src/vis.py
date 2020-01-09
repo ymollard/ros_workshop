@@ -1,61 +1,77 @@
 """
 Visualization using visdom.
 """
-import visdom
 import numpy as np
-from datetime import datetime
+import matplotlib.pyplot as plt
+from itertools import *
 
-class VisdomVisualizer:
+def preview_loader(images, labels, title):
     """
-    Uses visdom to visualize some data from the training.
+    Shows a few samples of the loader.
     """
 
-    def __init__(self):
-        self.visdom = visdom.Visdom()
-        self.env = datetime.now().strftime(("exp %m/%d/%Y, %H:%M:%S"))
-        self.visdom.fork_env("main", self.env)
-        self.windows = dict()
-        self.ticks = dict()
+    # We generate a plot
+    grid_size = int(np.floor(np.sqrt(images.shape[0])))
+    (fig, ax) = plt.subplots(11, 11)
+    for i in range(11**2):
+        current_axis = ax[i//grid_size, i%grid_size]
+        current_axis.imshow(images[i, 0])
+        current_axis.set_title(labels[i].item())
+        current_axis.set_axis_off()
+    fig.suptitle(title)
+    plt.show()
 
-    def push_train_loss(self, value):
-        self._push_line(value, name="Train loss")
+def preview_kernels(kernels, title):
+    """
+    Shows a few kernels in 2d
+    """
 
-    def push_test_loss(self, value):
-        self._push_line(value, name="Test loss")
+    # We get numpy arrays
+    k = kernels.detach().numpy().reshape(-1, 5, 5)
 
-    def push_train_accuracy(self, value):
-        self._push_line(value, name="Train accuracy")
+    # We generate a plot
+    (fig, ax) = plt.subplots(2, 3)
+    for (i, (x, y)) in enumerate(product(range(2), range(3))):
+        current_axis = ax[x, y]
+        current_axis.imshow(k[i])
+        current_axis.set_axis_off()
+    fig.suptitle(title)
+    plt.show()
 
-    def push_test_accuracy(self, value):
-        self._push_line(value, name="Test accuracy")
 
-    def push_class_images(self, images, label):
-        self._push_images(images, name="Samples detected as {}".format(label))
+def plot_learning_curves(train_loss, test_loss, title):
+    """
+    Plot learning curves
+    """
+    fig, ax = plt.subplots() 
+    ax.plot(train_loss, color="blue", label="Train-set")
+    ax.plot(test_loss, color="green", label="Test-set")
+    ax.set_ylabel("Loss")
+    ax.set_xlabel("Epochs")
+    ax.set_title(title)
+    ax.legend()
+    plt.show()
 
-    def _push_images(self, images, name):
-        if self.windows.get(name) is None:
-            self.ticks[name] = 0
-            self.windows[name] = self.visdom.images(images, \
-                                                    opts=dict(title=name),\
-                                                    env=self.env)
-        else:
-            self.ticks[name] += 1
-            self.visdom.images(images, win=self.windows[name], env=self.env)
- 
+def show_image(im, title):
+    """
+    This function shows an image.
+    """
+    plt.imshow(im)
+    plt.colorbar()
+    plt.title(title)
+    plt.show()
 
-    def _push_line(self, value, name):
-        if self.windows.get(name) is None:
-            self.ticks[name] = 0
-            self.windows[name] = self.visdom.line(X=np.array([0]), \
-                                                  Y=np.array([0]), \
-                                                  opts=dict(title=name),\
-                                                  env=self.env)
-        else:
-            self.ticks[name] += 1
-            x = np.array([self.ticks[name]])
-            y = np.array([value])
-            self.visdom.line(X=x, Y=y, win=self.windows[name], env=self.env, update='append')
-    
-    
+def show_binary(orig, binarized, title): 
+    """
+    This function shows the binarized version of the image
+    """
+
+    fig, ax = plt.subplots(2) 
+    ax[0].imshow(orig)
+    ax[0].set_title("Original")
+    ax[1].imshow(binarized)
+    ax[1].set_title("Binary")
+    fig.suptitle(ẗitle)
+    plt.show()
 
 

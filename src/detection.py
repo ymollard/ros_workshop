@@ -2,6 +2,7 @@
 This module contains utilities functions used in the preprocessing phase of the detection.
 """
 import imageio
+import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.transform as tf
@@ -11,6 +12,10 @@ from skimage.morphology import (closing, convex_hull_object, square)
 from skimage.segmentation import clear_border
 from scipy.spatial import ConvexHull
 
+try:
+    from . import vis
+except ImportError:
+    import vis
 
 
 def normalize(imag, mean, std, debug=False):
@@ -25,6 +30,8 @@ def normalize(imag, mean, std, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
+    imag = imag - mean
+    imag = imag / std
 
     if debug:
         plt.imshow(imag)
@@ -34,7 +41,7 @@ def normalize(imag, mean, std, debug=False):
     return imag
 
 
-def rescale(imag):
+def rescale(imag, debug=False):
     """
     This function returns a rescaled version of the image.
     This means that values all lies in [0, 1].
@@ -47,10 +54,13 @@ def rescale(imag):
     ##################
     # YOUR CODE HERE #
     ##################
+    imag = imag - imag.min()
+    imag = imag / imag.max()
 
     if debug:
         plt.imshow(imag)
         plt.title("rescaled image")
+        plt.colorbar()
         plt.show()
 
     return imag
@@ -67,13 +77,19 @@ def binarize(imag, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
+    thresh = threshold_otsu(imag)
+    black_white = closing(imag > thresh, square(3))
+    cleared = clear_border(black_white)
+    binar = convex_hull_object(cleared)
 
     if debug:
-        plt.imshow(imag)
-        plt.title("Thresholded image")
+        fig, ax = plt.subplots() 
+        ax.imshow(imag)
+        ax.imshow(binar, alpha=0.4)
+        fig.suptitle("Binary image")
         plt.show()
 
-    return imag
+    return binar
 
 
 def inverse(imag, debug=False):
@@ -88,6 +104,7 @@ def inverse(imag, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
+    imag = 1. - imag
 
     if debug:
         plt.imshow(imag)
@@ -134,6 +151,12 @@ def reorder_contour(contour):
     # YOUR CODE HERE #
     ##################
 
+    # Replace the following code
+    rightest_points = contour[contour[:, 0].argsort()][-2:]
+    lowest_rightest_point = rightest_points[rightest_points[:, 1].argsort()][-1]
+    lr_point_idx = np.where(np.all(contour == lowest_rightest_point, axis=1))[0][0]
+    contour = np.roll(contour, -lr_point_idx, axis=0)
+
     return contour
 
 
@@ -151,21 +174,27 @@ def get_box_contours(imag, debug=False):
     ##################
     # YOUR CODE HERE #
     ##################
+    binar = binarize(rescale(imag))
 
     # We extract the contours, and keep only the largest ones.
 
     ##################
     # YOUR CODE HERE #
     ##################
+    ctrs = find_contours(binar, 0)
+    hulls = [ConvexHull(c) for c in ctrs]
+    ctrs = [h.points[np.flip(h.vertices)] for h in hulls if h.area > 500]
 
     # We approximate the contours by squares and reorder the points
 
     ##################
     # YOUR CODE HERE #
     ##################
+    ctrs = [reorder_contour(approximate_square(c)) for c in ctrs]
 
     if debug:
         plt.imshow(imag)
+        plt.imshow(binar, alpha=0.4)
         for coords in ctrs:
             plt.plot(coords[:, 0], coords[:, 1], 'og', linewidth=2)
             plt.plot(coords.mean(axis=0)[0], coords.mean(axis=0)[1], 'or')
@@ -197,12 +226,17 @@ def get_sprites(imag, ctrs, debug=False):
         ##################
         # YOUR CODE HERE #
         ##################
+        source_points = np.array([[28, 28], [0, 28], [0, 0], [28, 0]])
+        destination_points = contour
+        transform = tf.ProjectiveTransform()
+        transform.estimate(source_points, destination_points)
 
         # We transform the image
 
         ##################
         # YOUR CODE HERE #
         ##################
+        warped = tf.warp(imag, transform, output_shape=(28, 28))
 
         if debug:
             _, axis = plt.subplots(nrows=2, figsize=(8, 3))
@@ -233,9 +267,13 @@ def preprocess_sprites(sprts, debug=False):
         ##################
         # YOUR CODE HERE #
         ##################
+        imag = inverse(rescale(imag), debug=False)
+        imag = normalize(imag, 0.5, 0.5, debug=False)
 
         if debug:
             plt.imshow(imag)
+            plt.title("Pre-processed sprites")
+            plt.colorbar()
             plt.show()
 
         out_sprites.append(imag)
@@ -245,17 +283,35 @@ def preprocess_sprites(sprts, debug=False):
 
 if __name__ == "__main__":
 
-    import glob
+    print("0) Getting images:") 
+    test_data = glob.glob('data/cubes/*/*.jpg', recursive=True)
+    print("Found test images: {}".format(test_data))
+    images = []
+    for path in test_data:
+        images.append(imageio.imread(path)[:, :, 0])
+    images = np.array(images)
+    vis.show_image(images[0], "Image sample")
 
-    TEST = glob.glob('../data/cubes/duo/*.jpg', recursive=True)
-    print(f"Found images to test: {TEST}")
+    print("Ok\n\n1) Rescaling image")
+    rescaled = rescale(images[0], debug=True)
+    assert rescaled.max() == 1.
+    assert rescaled.min() == 0. 
 
-    for path in TEST:
-        print("Testing image {}".format(path))
-        image = imageio.imread(path)[:, :, 0]
-        contours = get_box_contours(image, debug=True)
-        sprites = get_sprites(image, contours, debug=True)
-        sprites = preprocess_sprites(sprites, debug=False)
-        for img in sprites:
-            plt.imshow(img)
-            plt.show()
+    print("OK\n\n2) Binarizing image")
+    for im in images:
+        binarize(im, debug=False)
+
+    print("OK\n\n3) Getting boxes")
+    ctrs = []
+    for im in images:
+        ctrs.append(get_box_contours(im, debug=False))
+
+    print("OK\n\n4) Getting sprites")
+    sprites = []
+    for i in range(images.shape[0]):
+        sprites.append(get_sprites(images[i], ctrs[i], debug=False))
+
+    print("OK\n\n5) Pre-processing")
+    for sprt in sprites:
+        preprocess_sprites(sprt, debug=True)
+
