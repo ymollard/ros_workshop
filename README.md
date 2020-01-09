@@ -7,12 +7,12 @@ Ce repository contient le code à remplir pour la journée perception.
 Pour effectuer cet atelier, vous devez installer quelques packages:
 ```
 pip install torch==1.3.1+cpu torchvision==0.4.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
-pip install scikit-image
+pip install scikit-image imageio
 ```
 
 ## 1. Documentation
 
-Pour remplir ce code, vous aurez besoin de consulter plusieurs documentation. De manière générale, vous aurez besoin de numpy. Si vous n'êtes pas familier avec, vous pouvez consulter:
+Pour remplir ce code, vous aurez besoin de consulter plusieurs documentations. De manière générale, vous aurez besoin de numpy. Si vous n'êtes pas familier avec, vous pouvez consulter:
 + [Numpy cheatsheet](https://s3.amazonaws.com/assets.datacamp.com/blog_assets/Numpy_Python_Cheat_Sheet.pdf)
 + [Numpy Documentation](https://numpy.org/devdocs/user/quickstart.html)
 Pour la partie détection et pré-processing, nous utiliserons `scikit-image`. Vous pouvez vous inspirer des exemples:
@@ -24,56 +24,58 @@ Enfin, pour la partie reconnaissance, nous utiliserons `pytorch`. Vous devriez t
 
 ### 2.1 Les données et le modèle
 
-Commencer par ouvrir le fichier `src/models.py`. Pour vous familiariser avec les tenseurs, commencez par remplir les fonctions `imag_mean` et `image_std`. Quand cela est fait executez le script une première fois avec:
+Commencez par ouvrir le fichier `src/models.py`. Pour vous familiariser avec les tenseurs, commencez par remplir les fonctions `imag_mean` et `image_std`. Quand cela est fait executez le script une première fois avec:
 ```
 python src/models.py
 ```
-Quelles est la taille d'un batch de données d'entrée? De données de sortie? 
+
+Quelle est la taille d'un batch de données d'entrée? De données de sortie? 
+
 Quelle est la moyenne du batch d'entrée? Son écart type? 
 
 Dans le fichier se trouve une classe `LeNet` vide, qui contiendra votre modèle. En vous référant à la documentation de pytorch, remplissez la classe pour définir l'architecture LeNet vue pendant la présentation.
 
 Attention, la méthode `forward` prend en entrée un tenseur de taille [128, 1, 28, 28] et doit retourner un tenseur de taille [128, 2]. En revanche, la méthode infer doit retourner le label (`1` ou `2`) trouvé par le réseau de neurones pour une image, soit un simple float.
 
-Une fois le réseau défini, ré-exécutez le script. Si votre réseau est bien défini, votre réseau devrait être utilisé pour faire une inférence. 
+Une fois le réseau défini, ré-exécutez le script. Si votre réseau est bien défini, il devrait être utilisé pour faire une inférence. 
 
 Les labels trouvés par le réseau de neurones font ils sens? 
 
-Remplissez la fonction `compute_params_count`. Exécutez à nouveau. Quel est le nombre de paramêtres du réseau de neurones? Qu'en pensez vous ? 
+Remplissez la fonction `compute_params_count`. Exécutez à nouveau; quel est le nombre de paramêtres du réseau de neurones? Qu'en pensez vous ? 
 
-Enfin, si tout le script s'exècute, vous devriez voir s'afficher les noyeaux de la première couche. Qu'en pensez vous ? 
+Enfin, si tout le script s'exécute, vous devriez voir s'afficher les noyaux de la première couche. Qu'en pensez vous ? 
 
 ### 2.2 L'entrainement.
 
-Dirigez vous vers le fichier `train.py`. La fonction `perform_train_epoch` contient la procédure d'entrainement. Remplissez la en suivant la procédure présentée durant la matinée, puis executez le script. 
+Dirigez vous vers le fichier `train.py`. La fonction `perform_train_epoch` contient la procédure d'entrainement. Remplissez la en suivant la procédure présentée durant la matinée, puis exécutez le script. 
 
-Si votre algorithme d'entrainement est correctement écrit, vous devriez voir les courbes d'apprentissage apparaitre. Que pensez vous de ces courbes ? Que pensez vous du niveau de performance a la fin de l'entrainement? 
+Si votre algorithme d'entrainement est correctement écrit, vous devriez voir les courbes d'apprentissage apparaitre. Que pensez vous de ces courbes ? Que pensez vous du niveau de performance à la fin de l'entrainement? 
 
-A la suite de l'entrainement, le script vous présente les noyaux de la couche d'entrée du réseau. Qu'en pensez vous ? Ont ils évolué par rapport à tout a l'heure? 
+A la suite de l'entrainement, le script vous présente les noyaux de la couche d'entrée du réseau. Qu'en pensez vous ? Ont ils évolué par rapport à tout à l'heure? 
 
-Enfin, pouvez vous entrainer le modêle pendant suffisament longtemp pour voir la phase d'overfitting apparaitre? 
+Enfin, pouvez vous entrainer le modêle pendant suffisament longtemps pour voir la phase d'overfitting apparaître? 
 
 ## 3. Partie amont (Après-midi)
 
 ### 3.1 Détection
 
-Executez le fichier `src/detection.py`.  Les données sont chargées depuis le disque dans un tableau numpy, dont un example vous est montré. Remplissez la fonction `rescale` qui permet de ré-échelloner les valeurs du tablea entre 0 et 1.
+Exécutez le fichier `src/detection.py`.  Les données sont chargées depuis le disque dans un tableau numpy, dont un example vous est montré. Remplissez la fonction `rescale` qui permet de ré-échelloner les valeurs du tableau entre 0 et 1.
 
-La première étape du pipeline de détection consiste a binariser l'image. Remplissez la fonction `binarize` et ré-exécutez le code. Observez chacun des exemples. Les chiffres sont ils invisible ? Les boites ne sont elles couvertes que par une seule ou plusieurs zones blanches? Cette zone blanche est elle proche de la surface de la boite ? 
+La première étape du pipeline de détection consiste à binariser l'image. Remplissez la fonction `binarize` et ré-exécutez le code. Observez chacun des exemples. Les chiffres ont ils bien disparus ? Les cubes sont ils couverts chacun par une unique zone blanche? Cette zone blanche est elle proche de la surface du cube ? 
 
-Tant que vous ne pouvez répondre positivement a toutes ces questions (dans la mesure du raisonnable), ameliorez votre programme! Une fois fini, vous pouvez mettre `binarize(im, debug=False)` pour éviter de revoir toutes les images a chaque fois.
+Tant que vous ne pouvez répondre positivement à toutes ces questions (dans la mesure du raisonnable), ameliorez votre programme! Une fois fini, vous pouvez mettre `binarize(im, debug=False)` pour éviter de revoir toutes les images à chaque fois.
 
-Suite à cela, nous allons effectuer la recherche des boites dans l'image. Remplissez la fonction `get_box contour` et ré-exécutez le code. A nouveau, les boites sont elles bien détectées ? Tant que votre algorithme ne positionne pas correctement les coins des différentes boites de l'image, améliorez le.
+Suite à cela, nous allons effectuer la recherche des cubes dans l'image. Remplissez la fonction `get_box contour` et ré-exécutez le code. À nouveau, les cubes sont ils bien détectés ? Tant que votre algorithme ne positionne pas correctement les coins des différentes boites de l'image, améliorez le.
 
-Encore une foism quand vous aurez termine, desactivez la visualisation avec `get_box_contour(im, debug=False)`.
+Encore une fois quand vous aurez terminé, désactivez la visualisation avec `get_box_contour(im, debug=False)`.
 
 ### 3.2 Pré-processing
 
-Nous avons maintenant une fonction `get_box_contours` qui nous donne, à partir d'une image d'entrée, une liste de contours de quadrilatères. Maintenant, il s'ait de transformer ces quaqdrilateres en images de la taille des images de mnist. Pour cela, nous allons calculer une transformation projective pour chacune de ces boites. 
+Nous avons maintenant une fonction `get_box_contours` qui nous donne, à partir d'une image d'entrée, une liste de contours de quadrilatères. Maintenant, il s'ait de transformer ces quaqdrilatères en images de la taille des images de mnist. Pour cela, nous allons calculer une transformation projective pour chacun des cubes. 
 
-Remplissez la fonction `get_sprites`, puis ré-executez le code. Si votre code est correct, vous devriez voir s'afficher des imagettes ressemblant (au moins par la taille) aux images de mnist.
+Remplissez la fonction `get_sprites`, puis ré-executez le code. Si votre code est correct, vous devriez voir s'afficher des imagettes ressemblant (au moin par la taille) aux images de mnist.
 
-Une fois cela fait, il ne vous reste plus qu'a remplir la fonction `preprocess_sprites`. Le but de cette fonction est de faire en sorte que les images données au réseau de neurones ressemblent le plus possible aux images de l'entrainement. Ëtudiez bien les données d'entrée avant de vous mettre au travail (vous aurez peut être besoin de retourner regarder `src/models.py` ou de regarder `src/misc.py`).
+Une fois cela fait, il ne vous reste plus qu'à remplir la fonction `preprocess_sprites`. Le but de cette fonction est de faire en sorte que les images données au réseau de neurones ressemblent le plus possible aux images de l'entrainement. Étudiez bien les données d'entrée avant de vous mettre au travail (vous aurez peut être besoin de retourner regarder `src/models.py` ou de regarder `src/misc.py`).
 
 
 ## 4. Final
